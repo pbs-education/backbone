@@ -759,6 +759,16 @@
       }
     },
 
+    get: function(name) {
+      this.check_parameter(name);
+      return _.first(this.parameters[name]);
+    },
+
+    getlist: function(name) {
+      this.check_parameter(name);
+      return this.parameters[name];
+    },
+
     check_parameter: function(name) {
       if(typeof this.parameters[name] === 'undefined') {
         this.clear_parameter(name);
