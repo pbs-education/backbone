@@ -751,7 +751,7 @@
               var key = decodeURIComponent(param[0]);
               var val = decodeURIComponent(param[1]);
               if(key && val) {
-                this.add_parameter(key, val);
+                this.add(key, val);
               }
             }, this);
           }
@@ -760,44 +760,44 @@
     },
 
     get: function(name) {
-      this.check_parameter(name);
+      this.check(name);
       return _.first(this.parameters[name]);
     },
 
     getlist: function(name) {
-      this.check_parameter(name);
+      this.check(name);
       return this.parameters[name];
     },
 
-    check_parameter: function(name) {
+    check: function(name) {
       if(typeof this.parameters[name] === 'undefined') {
-        this.clear_parameter(name);
+        this.clear(name);
       }
     },
 
-    add_parameter: function(name, value) {
-      this.check_parameter(name);
+    add: function(name, value) {
+      this.check(name);
       this.parameters[name] = _.union(this.parameters[name], [value]);
     },
 
-    remove_parameter: function(name, value) {
-      this.check_parameter(name);
+    remove: function(name, value) {
+      this.check(name);
       this.parameters[name] = _.difference(this.parameters[name], [value]);
     },
 
-    set_parameter: function(name, value) {
-      this.clear_parameter(name);
+    set: function(name, value) {
+      this.clear(name);
       if(value) {
         value = _.isArray(value) ? value : [ value ];
         this.parameters[name] = value;
       }
     },
 
-    clear_parameter: function(name) {
+    clear: function(name) {
       this.parameters[name] = [];
     },
 
-    serialize_parameters: function() {
+    serialize: function() {
       var s = [];
       _.each(this.parameters, function(vals, key) {
         _.each(vals, function(val) {
@@ -910,7 +910,7 @@
           if(qs_index >= 0) {
             fragment = fragment.substr(0, qs_index);
           }
-          fragment = fragment + '?' + this.state.serialize_parameters();
+          fragment = fragment + '?' + this.state.serialize();
           this.navigate(fragment, true);
         }, this);
       }
