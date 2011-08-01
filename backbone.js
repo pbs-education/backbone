@@ -733,7 +733,7 @@
     this.initialize.apply(this, arguments);
   };
 
-  _.extend(Backbone.State.prototype, {
+  _.extend(Backbone.State.prototype, Backbone.Events, {
     initialize: function() {},
 
     syncronize: function(state) {
