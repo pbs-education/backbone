@@ -727,6 +727,130 @@
 
   });
 
+
+  Backbone.State = function() {
+    this.parameters = {};
+    this.initialize.apply(this, arguments);
+  };
+
+  _.extend(Backbone.State.prototype, {
+    initialize: function() {},
+
+	param: function(a, traditional) {
+		var s = [],
+			add = function( key, value ) {
+				// If value is a function, invoke it and return its value
+				value = _.isFunction(value) ? value() : value;
+				s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value);
+			};
+
+		// Set traditional to true for jQuery <= 1.3.2 behavior.
+		if ( traditional === undefined ) {
+			traditional = jQuery.ajaxSettings.traditional;
+		}
+
+		// If an array was passed in, assume that it is an array of form elements.
+		if ( jQuery.isArray( a ) || ( a.jquery && !jQuery.isPlainObject( a ) ) ) {
+			// Serialize the form elements
+			jQuery.each( a, function() {
+				add( this.name, this.value );
+			} );
+
+		} else {
+			// If traditional, encode the "old" way (the way 1.3.2 or older
+			// did it), otherwise encode params recursively.
+			for ( var prefix in a ) {
+				buildParams( prefix, a[ prefix ], traditional, add );
+			}
+		}
+
+		// Return the resulting serialization
+		return s.join( "&" ).replace( r20, "+" );
+	}
+    syncronize: function(state) {
+      if(state instanceof Backbone.State) {
+        this.parameters = state.parameters;
+      }
+      else {
+        this.parameters = {};
+        if(typeof state === 'string') {
+          var qs_index = state.search(/\?/);
+          if(qs_index >= 0) {
+            state = state.substr(qs_index + 1);
+            _.each(state.replace(/\+/g, ' ').split('&'), function(v) {
+              var param = v.split( '=' );
+              var key = decodeURIComponent(param[0]);
+              var val = decodeURIComponent(param[1]);
+              if(key && val) {
+                this.add_parameter(key, val);
+              }
+            }, this);
+          }
+        }
+      }
+    },
+
+    check_parameter: function(name) {
+      if(typeof this.parameters[name] === 'undefined') {
+        this.clear_parameter(name);
+      }
+    },
+
+    add_parameter: function(name, value) {
+      this.check_parameter(name);
+      this.parameters[name] = _.union(this.parameters[name], [value]);
+    },
+
+    remove_parameter: function(name, value) {
+      this.check_parameter(name);
+      this.parameters[name] = _.difference(this.parameters[name], [value]);
+    },
+
+    set_parameter: function(name, value) {
+      this.clear_parameter(name);
+      if(value) {
+        value = _.isArray(value) ? value : [ value ];
+        this.parameters[name] = value;
+      }
+    },
+
+    clear_parameter: function(name) {
+      this.parameters[name] = [];
+    },
+
+    get_parameters: function() {
+      var parameters = [];
+      _.each(this.parameters, function(values, key) {
+        _.each(values, function(value) {
+          parameters.push({name: key, value: value});
+        });
+      });
+      return parameters;
+    },
+
+    serialize_parameters: function() {
+      return $.param(this.get_parameters());
+    },
+
+    page_location: function() {
+      var fragment = Backbone.history.fragment;
+      var qs_index = fragment.search(/\?/);
+      if(qs_index >= 0) {
+        fragment = fragment.substr(0, qs_index);
+      }
+      return fragment + '?' + this.serialize_parameters();
+    },
+
+    save: function() {
+      if(this.collection_or_model) {
+        this.collection_or_model.fetch();
+      }
+      else {
+        Backbone.history.navigate(this.page_location(), true);
+      }
+    }
+  });
+
   // Backbone.History
   // ----------------
 
@@ -734,6 +858,7 @@
   // browser does not support `onhashchange`, falls back to polling.
   Backbone.History = function() {
     this.handlers = [];
+    this.state = new Backbone.State();
     _.bindAll(this, 'checkUrl');
   };
 
@@ -766,7 +891,9 @@
           fragment = window.location.hash;
         }
       }
-      return fragment.replace(hashStrip, '');
+      fragment = fragment.replace(hashStrip, '');
+      this.state.syncronize(fragment);
+      return fragment;
     },
 
     // Start the hash change handling, returning `true` if the current URL matches
