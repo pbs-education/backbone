@@ -797,22 +797,8 @@
       return s.join("&").replace(/%20/g, "+");
     },
 
-    page_location: function() {
-      var fragment = Backbone.history.fragment;
-      var qs_index = fragment.search(/\?/);
-      if(qs_index >= 0) {
-        fragment = fragment.substr(0, qs_index);
-      }
-      return fragment + '?' + this.serialize_parameters();
-    },
-
     save: function() {
-      if(this.collection_or_model) {
-        this.collection_or_model.fetch();
-      }
-      else {
-        Backbone.history.navigate(this.page_location(), true);
-      }
+      this.trigger('change');
     }
   });
 
@@ -823,7 +809,6 @@
   // browser does not support `onhashchange`, falls back to polling.
   Backbone.History = function() {
     this.handlers = [];
-    this.state = new Backbone.State();
     _.bindAll(this, 'checkUrl');
   };
 
@@ -857,7 +842,9 @@
         }
       }
       fragment = fragment.replace(hashStrip, '');
-      this.state.syncronize(fragment);
+      if(this.state) {
+        this.state.syncronize(fragment);
+      }
       return fragment;
     },
 
@@ -904,6 +891,20 @@
         this.fragment = loc.hash.replace(hashStrip, '');
         window.history.replaceState({}, document.title, loc.protocol + '//' + loc.host + this.options.root + this.fragment);
       }
+
+      if(options.applicationState) {
+        this.state = new Backbone.State();
+        this.state.bind('change', function() {
+          var fragment = this.fragment;
+          var qs_index = fragment.search(/\?/);
+          if(qs_index >= 0) {
+            fragment = fragment.substr(0, qs_index);
+          }
+          fragment = fragment + '?' + this.state.serialize_parameters();
+          this.navigate(fragment, true);
+        }, this);
+      }
+
       return this.loadUrl();
     },
 
